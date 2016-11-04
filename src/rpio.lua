@@ -1,4 +1,5 @@
 local gpio_subsystem = '/sys/class/gpio/'
+local usedPins = {}
 
 local function write(path, value)
   local f = io.open(path, 'a+')
@@ -29,6 +30,10 @@ local function ready(device)
   end)
 end
 
+local function cleanup()
+	for i,v in pairs(usedPins) do v:set_direction('in') end
+end
+
 return function(which)
   local device = gpio_subsystem .. 'gpio' .. which .. '/'
 
@@ -42,7 +47,7 @@ return function(which)
     os.execute('sleep 0.001')
   end
 
-  return {
+	usedPins[which] = {
     set_direction = function(direction)
       write(device .. 'direction', direction)
     end,
@@ -55,4 +60,6 @@ return function(which)
       return read(device .. 'value')
     end
   }
+
+  return usedPins[which]
 end
