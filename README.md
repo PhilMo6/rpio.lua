@@ -10,5 +10,8 @@ gpio.write(1)
 
 gpio.set_direction('in')
 print(gpio.read())
+
+local cleanup = rpio()
+cleanup()
 ```
 
