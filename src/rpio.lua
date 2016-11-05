@@ -1,5 +1,5 @@
 local gpio_subsystem = '/sys/class/gpio/'
-local usedPins = {}
+if not _G.usedGPIO then _G.usedGPIO = {} end
 
 local function write(path, value)
   local f = io.open(path, 'a+')
@@ -31,35 +31,37 @@ local function ready(device)
 end
 
 local function cleanup()
-	for i,v in pairs(usedPins) do v:set_direction('in') end
+	for i,v in pairs(usedGPIO or {}) do v:set_direction('in') end
 end
 
+--call rpio without "which" argument to return a cleanup function
 return function(which)
-  local device = gpio_subsystem .. 'gpio' .. which .. '/'
+	if not which then return cleanup end
+	local device = gpio_subsystem .. 'gpio' .. which .. '/'
 
-  if exists(device) then
-    write(gpio_subsystem .. 'unexport', which)
-  end
+	if exists(device) then
+		write(gpio_subsystem .. 'unexport', which)
+	end
 
-  write(gpio_subsystem .. 'export', which)
+	write(gpio_subsystem .. 'export', which)
 
-  while not ready(device) do
-    os.execute('sleep 0.001')
-  end
+	while not ready(device) do
+		os.execute('sleep 0.001')
+	end
 
-	usedPins[which] = {
-    set_direction = function(direction)
-      write(device .. 'direction', direction)
-    end,
+	usedGPIO[which] = {
+	set_direction = function(direction)
+		write(device .. 'direction', direction)
+	end,
 
-    write = function(value)
-      write(device .. 'value', value)
-    end,
+	write = function(value)
+		write(device .. 'value', value)
+	end,
 
-    read = function()
-      return read(device .. 'value')
-    end
+	read = function()
+		return read(device .. 'value')
+	end
   }
 
-  return usedPins[which]
+  return usedGPIO[which]
 end
